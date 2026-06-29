@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPS 剩余价值计算器</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --success-color: #10b981;
+            --warning-color: #ef4444;
+            --accent-color: #f59e0b;
+            --rate-bg: #eff6ff;
+            --rate-border: #bfdbfe;
+            --result-bg: #f1f5f9;
+        }
+
+        /* 自动适配系统暗黑模式 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #0f172a;
+                --card-bg: #1e293b;
+                --text-main: #f1f5f9;
+                --text-muted: #94a3b8;
+                --border-color: #334155;
+                --primary-color: #3b82f6;
+                --primary-hover: #60a5fa;
+                --rate-bg: #1e3a8a33;
+                --rate-border: #1e40af;
+                --result-bg: #0f172a66;
+            }
+
+            input,
+            select {
+                background-color: #0f172a !important;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            transition: background-color 0.3s;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 520px;
+            padding: 32px;
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 24px;
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .input-with-unit {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-with-unit input {
+            flex: 1;
+        }
+
+        .input-with-unit select {
+            width: 100px;
+            flex-shrink: 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .label-row label {
+            margin-bottom: 0;
+        }
+
+        .action-btn {
+            font-size: 0.8rem;
+            color: var(--primary-color);
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+        .action-btn:hover {
+            color: var(--primary-hover);
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            color: var(--text-main);
+            background-color: #fff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .rate-box {
+            background-color: var(--rate-bg);
+            border: 1px solid var(--rate-border);
+            padding: 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .rate-status {
+            font-size: 0.8rem;
+            font-weight: normal;
+            margin-left: 6px;
+        }
+
+        .rate-prefix {
+            font-size: 0.9rem;
+            font-weight: 600;
+            white-space: nowrap;
+            min-width: 75px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .btn-main {
+            flex: 1;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn-main:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            padding: 12px 18px;
+            background-color: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .btn-secondary:hover {
+            color: var(--text-main);
+            border-color: var(--text-main);
+        }
+
+        .result-box {
+            margin-top: 24px;
+            padding: 20px;
+            background-color: var(--result-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .result-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+        .result-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-item .label {
+            color: var(--text-muted);
+        }
+
+        .result-item .value {
+            font-weight: 600;
+        }
+
+        .highlight-value {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            font-weight: 700 !important;
+        }
+
+        .sub-value {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: block;
+            text-align: right;
+            margin-top: 2px;
+        }
+
+        .status-premium {
+            color: var(--warning-color);
+            font-weight: 700 !important;
+        }
+
+        .status-discount {
+            color: var(--success-color);
+            font-weight: 700 !important;
+        }
+
+        .error-message {
+            color: var(--warning-color);
+            font-size: 0.9rem;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>VPS 剩余价值计算器</h2>
+
+        <div class="form-group">
+            <label for="price">续费价格</label>
+            <div class="input-with-unit">
+                <input type="number" id="price" placeholder="例如: 100" step="any">
+                <select id="priceUnit">
+                    <option value="CNY">CNY (¥)</option>
+                    <option value="USD" selected>USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="CAD">CAD (C$)</option>
+                    <option value="GBP">GBP (£)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="cycle">续费周期</label>
+            <select id="cycle">
+                <option value="monthly">月付 (1个月)</option>
+                <option value="quarterly">季付 (3个月)</option>
+                <option value="half-yearly">半年付 (6个月)</option>
+                <option value="yearly" selected>年付 (1年)</option>
+                <option value="biennially">两年付 (2年)</option>
+                <option value="triennially">三年付 (3年)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="endDate">到期日期</label>
+            <input type="date" id="endDate">
+        </div>
+
+        <div class="form-group">
+            <label for="tradeDate">交易日期</label>
+            <input type="date" id="tradeDate">
+        </div>
+
+        <div class="form-group">
+            <label for="dealPrice">交易价格</label>
+            <div class="input-with-unit">
+                <input type="number" id="dealPrice" placeholder="输入实际支付的价格" step="any">
+                <select id="dealPriceUnit">
+                    <option value="CNY" selected>CNY (¥)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="CAD">CAD (C$)</option>
+                    <option value="GBP">GBP (£)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="rate-box" id="exchangeRateRow" style="display: none;">
+            <div class="label-row">
+                <label for="exchangeRate" style="color: var(--primary-color);">
+                    汇率换算<span class="rate-status" id="rateStatus"></span>
+                </label>
+                <button class="action-btn" id="manualRefreshBtn" type="button">重新获取</button>
+            </div>
+            <div class="input-with-unit" style="align-items: center;">
+                <span class="rate-prefix" id="rateLabel">1 外币 = </span>
+                <input type="number" id="exchangeRate" step="0.0001" placeholder="请输入当前汇率">
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-main" id="shareBtn" type="button">生成分享链接</button>
+            <button class="btn-secondary" id="resetBtn" type="button">清空</button>
+        </div>
+
+        <div id="error-msg" class="error-message"></div>
+
+        <div class="result-box" id="result-box" style="display: none;">
+            <div class="result-title">计算结果</div>
+            <div class="result-item">
+                <span class="label">周期总天数:</span>
+                <span class="value"><span id="out-total-days">-</span> 天</span>
+            </div>
+            <div class="result-item">
+                <span class="label">已使用天数:</span>
+                <span class="value"><span id="out-used-days">-</span> 天</span>
+            </div>
+            <div class="result-item">
+                <span class="label">剩余天数:</span>
+                <span class="value"><span id="out-remaining-days">-</span> 天</span>
+            </div>
+
+            <div class="result-item"
+                style="margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border-color); align-items: flex-start;">
+                <span class="label" style="margin-top: 4px;">实际剩余价值:</span>
+                <div style="text-align: right;">
+                    <span class="value highlight-value" id="out-value">-</span>
+                    <span class="sub-value" id="out-value-converted"></span>
+                </div>
+            </div>
+
+            <div class="result-item" id="diff-row" style="display: none;">
+                <span class="label" id="out-diff-label">交易溢价:</span>
+                <span class="value" id="out-diff-value">-</span>
+            </div>
+        </div>
+
+        <div class="footer">
+            理性消费 • 从我做起
+        </div>
+    </div>
+
+    <script>
+        if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+        }
+
+        const VPSApp = {
+            CONFIG: {
+                API_URL: 'https://open.er-api.com/v6/latest/',
+                TIMEOUT_MS: 2500,
+                STORAGE_PREFIX: 'vps_'
+            },
+
+            state: {
+                isManualRate: false,
+                currencyMap: { 'CNY': '¥', 'USD': '$', 'EUR': '€', 'CAD': 'C$', 'GBP': '£' },
+                storageKeys: ['price', 'priceUnit', 'cycle', 'endDate', 'tradeDate', 'dealPrice', 'dealPriceUnit', 'exchangeRate']
+            },
+
+            dom: {},
+
+            getStorage(id) {
+                const key = this.CONFIG.STORAGE_PREFIX + id;
+                const isSession = ['tradeDate', 'exchangeRate', 'isManualRate'].includes(id);
+                return isSession ? sessionStorage.getItem(key) : localStorage.getItem(key);
+            },
+            setStorage(id, val) {
+                const key = this.CONFIG.STORAGE_PREFIX + id;
+                const isSession = ['tradeDate', 'exchangeRate', 'isManualRate'].includes(id);
+                if (isSession) {
+                    sessionStorage.setItem(key, val);
+                } else {
+                    localStorage.setItem(key, val);
+                }
+            },
+            removeStorage(id) {
+                const key = this.CONFIG.STORAGE_PREFIX + id;
+                sessionStorage.removeItem(key);
+                localStorage.removeItem(key);
+            },
+
+            init() {
+                if (document.activeElement) document.activeElement.blur();
+
+                this.state.storageKeys.forEach(id => this.dom[id] = document.getElementById(id));
+                ['out-total-days', 'out-used-days', 'out-remaining-days', 'out-value', 'out-value-converted',
+                    'out-diff-label', 'out-diff-value', 'exchangeRateRow', 'rateStatus', 'rateLabel', 'error-msg',
+                    'result-box', 'diff-row', 'manualRefreshBtn', 'resetBtn', 'shareBtn'].forEach(id => {
+                        this.dom[id] = document.getElementById(id);
+                    });
+
+                this.bindEvents();
+                this.loadSavedState();
+                this.updateExchangeRate(true);
+            },
+
+            bindEvents() {
+                const inputIds = ['price', 'priceUnit', 'cycle', 'endDate', 'tradeDate', 'dealPrice', 'dealPriceUnit'];
+                inputIds.forEach(id => {
+                    this.dom[id].addEventListener('input', (e) => {
+                        this.setStorage(id, e.target.value);
+                        if (id === 'priceUnit' || id === 'dealPriceUnit') {
+                            this.state.isManualRate = false;
+                            this.setStorage('isManualRate', 'false');
+                            this.updateExchangeRate(true);
+                        } else {
+                            this.executePipeline();
+                        }
+                    });
+                });
+
+                this.dom.exchangeRate.addEventListener('input', (e) => {
+                    this.state.isManualRate = true;
+                    this.setStorage('exchangeRate', e.target.value);
+                    this.setStorage('isManualRate', 'true');
+                    this.dom.rateStatus.innerText = `(已切换手动输入)`;
+                    this.dom.rateStatus.style.color = 'var(--accent-color)';
+                    this.executePipeline();
+                });
+
+                this.dom.manualRefreshBtn.addEventListener('click', () => {
+                    this.state.isManualRate = false;
+                    this.setStorage('isManualRate', 'false');
+                    this.updateExchangeRate(true);
+                });
+
+                this.dom.resetBtn.addEventListener('click', () => this.resetApplication());
+                this.dom.shareBtn.addEventListener('click', () => this.generateShareLink());
+            },
+
+            coreCalculate(data) {
+                const endDate = this.parseLocalDate(data.endDateVal);
+                const tradeDate = this.parseLocalDate(data.tradeDateVal);
+                let startDate = this.parseLocalDate(data.endDateVal);
+
+                if (!endDate || !tradeDate || !startDate) return null;
+
+                const originalMonth = startDate.getMonth();
+                const cycle = data.cycle;
+
+                if (['monthly', 'quarterly', 'half-yearly'].includes(cycle)) {
+                    let offset = cycle === 'monthly' ? 1 : (cycle === 'quarterly' ? 3 : 6);
+                    let targetMonth = startDate.getMonth() - offset;
+                    startDate.setMonth(targetMonth);
+                    if (startDate.getMonth() !== (targetMonth + 12) % 12) startDate.setDate(0);
+                } else {
+                    let offset = cycle === 'yearly' ? 1 : (cycle === 'biennially' ? 2 : 3);
+                    startDate.setFullYear(startDate.getFullYear() - offset);
+                    if (startDate.getMonth() !== originalMonth) startDate.setDate(0);
+                }
+
+                const msPerDay = 24 * 60 * 60 * 1000;
+                const endUTC = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+                const tradeUTC = Date.UTC(tradeDate.getFullYear(), tradeDate.getMonth(), tradeDate.getDate());
+                const startUTC = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+
+                const totalDays = Math.round((endUTC - startUTC) / msPerDay);
+                const remainingDays = Math.round((endUTC - tradeUTC) / msPerDay);
+
+                return {
+                    totalDays,
+                    remainingDays,
+                    usedDays: totalDays - remainingDays
+                };
+            },
+
+            executePipeline() {
+                const formData = {
+                    price: parseFloat(this.dom.price.value),
+                    pUnit: this.dom.priceUnit.value,
+                    cycle: this.dom.cycle.value,
+                    endDateVal: this.dom.endDate.value,
+                    tradeDateVal: this.dom.tradeDate.value,
+                    dealPriceInput: this.dom.dealPrice.value,
+                    dealPrice: parseFloat(this.dom.dealPrice.value),
+                    dUnit: this.dom.dealPriceUnit.value,
+                    exchangeRate: parseFloat(this.dom.exchangeRate.value)
+                };
+
+                if (isNaN(formData.price) || !formData.endDateVal || !formData.tradeDateVal) {
+                    this.dom['result-box'].style.display = 'none';
+                    this.dom['error-msg'].innerText = '';
+                    return;
+                }
+
+                const timeResult = this.coreCalculate(formData);
+                if (!timeResult) return;
+
+                if (timeResult.remainingDays < 0) {
+                    this.toggleError('❌ 错误：交易日期不能晚于到期日期！');
+                    return;
+                }
+                if (timeResult.remainingDays > timeResult.totalDays) {
+                    this.toggleError('❌ 错误：交易日期早于本周期的开始日期！');
+                    return;
+                }
+
+                this.dom['error-msg'].innerText = '';
+                this.dom['result-box'].style.display = 'block';
+
+                const remainingValueOriginal = timeResult.totalDays > 0 ? (formData.price / timeResult.totalDays) * timeResult.remainingDays : 0;
+
+                this.renderView(timeResult, formData, remainingValueOriginal);
+            },
+
+            renderView(time, form, valOriginal) {
+                this.dom['out-total-days'].innerText = time.totalDays;
+                this.dom['out-used-days'].innerText = time.usedDays >= 0 ? time.usedDays : 0;
+                this.dom['out-remaining-days'].innerText = time.remainingDays;
+
+                const pSign = this.state.currencyMap[form.pUnit];
+                const dSign = this.state.currencyMap[form.dUnit];
+
+                this.dom['out-value'].innerText = `${pSign}${valOriginal.toFixed(2)}`;
+
+                if (form.pUnit !== form.dUnit) {
+                    if (isNaN(form.exchangeRate) || this.dom.exchangeRate.value.trim() === "") {
+                        this.dom['out-value-converted'].style.display = 'block';
+                        this.dom['out-value-converted'].innerText = `⚠️ 请在上方输入有效汇率以进行币种换算`;
+                        this.dom['out-value-converted'].style.color = 'var(--warning-color)';
+                        this.dom['diff-row'].style.display = 'none';
+                        return;
+                    }
+                    this.dom['out-value-converted'].style.color = 'var(--text-muted)';
+                    const valConverted = valOriginal * form.exchangeRate;
+                    this.dom['out-value-converted'].innerText = `折合: ${dSign}${valConverted.toFixed(2)} (${form.dUnit})`;
+
+                    if (form.dealPriceInput.trim() !== "" && !isNaN(form.dealPrice)) {
+                        this.dom['diff-row'].style.display = 'flex';
+                        this.renderPremiumStyle(form.dealPrice - valConverted, dSign, form.dUnit);
+                    } else { this.dom['diff-row'].style.display = 'none'; }
+                } else {
+                    this.dom['out-value-converted'].style.display = 'none';
+                    if (form.dealPriceInput.trim() !== "" && !isNaN(form.dealPrice)) {
+                        this.dom['diff-row'].style.display = 'flex';
+                        this.renderPremiumStyle(form.dealPrice - valOriginal, dSign, form.dUnit);
+                    } else { this.dom['diff-row'].style.display = 'none'; }
+                }
+            },
+
+            renderPremiumStyle(diff, sign, unit) {
+                this.dom['out-diff-label'].innerText = `交易溢价 (${unit}):`;
+                this.dom['out-diff-value'].className = "value";
+
+                if (diff > 0.005) {
+                    this.dom['out-diff-value'].innerText = `+${sign}${diff.toFixed(2)}`;
+                    this.dom['out-diff-value'].className = "value status-premium";
+                } else if (diff < -0.005) {
+                    this.dom['out-diff-value'].innerText = `-${sign}${Math.abs(diff).toFixed(2)}`;
+                    this.dom['out-diff-value'].className = "value status-discount";
+                } else {
+                    this.dom['out-diff-value'].innerText = `${sign}0.00`;
+                }
+            },
+
+            async updateExchangeRate(triggerCalculate = true) {
+                const pUnit = this.dom.priceUnit.value;
+                const dUnit = this.dom.dealPriceUnit.value;
+
+                if (pUnit === dUnit) {
+                    this.dom.exchangeRateRow.style.display = 'none';
+                    this.dom.exchangeRate.value = 1;
+                    if (triggerCalculate) this.executePipeline();
+                    return;
+                }
+
+                this.dom.exchangeRateRow.style.display = 'block';
+                this.dom.rateLabel.innerText = `1 ${pUnit} = `;
+
+                if (this.state.isManualRate) {
+                    if (triggerCalculate) this.executePipeline();
+                    return;
+                }
+
+                this.dom.rateStatus.innerText = `(正在获取实时汇率...)`;
+                this.dom.rateStatus.style.color = 'var(--text-muted)';
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), this.CONFIG.TIMEOUT_MS);
+
+                try {
+                    const response = await fetch(`${this.CONFIG.API_URL}${pUnit}`, { signal: controller.signal });
+                    if (!response.ok) throw new Error();
+                    const data = await response.json();
+
+                    if (!this.state.isManualRate && data?.rates?.[dUnit]) {
+                        this.dom.exchangeRate.value = data.rates[dUnit].toFixed(4);
+                        this.setStorage('exchangeRate', this.dom.exchangeRate.value);
+                        this.dom.rateStatus.innerText = `(已同步最新实时汇率)`;
+                        this.dom.rateStatus.style.color = 'var(--success-color)';
+                    }
+                } catch (error) {
+                    if (!this.state.isManualRate) {
+                        this.dom.exchangeRate.value = "";
+                        this.dom.rateStatus.innerText = `(获取失败，请手动输入)`;
+                        this.dom.rateStatus.style.color = 'var(--warning-color)';
+                    }
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+
+                if (triggerCalculate) this.executePipeline();
+            },
+
+            parseLocalDate(dateStr) {
+                if (!dateStr) return null;
+                const parts = dateStr.split('-');
+                return parts.length === 3 ? new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)) : null;
+            },
+
+            toggleError(msg) {
+                this.dom['result-box'].style.display = 'none';
+                this.dom['error-msg'].innerText = msg;
+            },
+
+            loadSavedState() {
+                if (this.getStorage('isManualRate') === 'true') {
+                    this.state.isManualRate = true;
+                    this.dom.rateStatus.innerText = `(已恢复历史手动输入)`;
+                    this.dom.rateStatus.style.color = 'var(--accent-color)';
+                }
+
+                const params = new URLSearchParams(window.location.search);
+
+                if (window.location.search) {
+                    this.state.isManualRate = false;
+                    this.setStorage('isManualRate', 'false');
+                    this.dom.dealPrice.value = '';
+                    this.removeStorage('dealPrice');
+                    this.removeStorage('tradeDate');
+                    this.removeStorage('exchangeRate');
+
+                    const urlMapping = { 'price': 'price', 'pUnit': 'priceUnit', 'cycle': 'cycle', 'end': 'endDate', 'deal': 'dealPrice', 'dUnit': 'dealPriceUnit' };
+                    Object.keys(urlMapping).forEach(key => {
+                        if (params.has(key)) {
+                            this.dom[urlMapping[key]].value = params.get(key);
+                            this.setStorage(urlMapping[key], params.get(key));
+                        }
+                    });
+
+                    this.dom.tradeDate.value = new Date().toISOString().split('T')[0];
+                } else {
+                    const savedTradeDate = this.getStorage('tradeDate');
+                    this.dom.tradeDate.value = (savedTradeDate && savedTradeDate.trim() !== '') ? savedTradeDate : new Date().toISOString().split('T')[0];
+
+                    this.state.storageKeys.forEach(id => {
+                        if (id === 'tradeDate') return;
+                        const localVal = this.getStorage(id);
+                        if (localVal !== null && localVal !== '') {
+                            this.dom[id].value = localVal;
+                        }
+                    });
+                }
+            },
+
+            resetApplication() {
+                this.state.storageKeys.forEach(id => {
+                    if (id !== 'priceUnit' && id !== 'dealPriceUnit') {
+                        this.dom[id].value = '';
+                        this.removeStorage(id);
+                    }
+                });
+                const todayStr = new Date().toISOString().split('T')[0];
+                this.dom.tradeDate.value = todayStr;
+                this.setStorage('tradeDate', todayStr);
+                this.state.isManualRate = false;
+                this.removeStorage('isManualRate');
+                if (window.location.search) window.history.replaceState({}, document.title, window.location.pathname);
+                this.updateExchangeRate(true);
+            },
+
+            generateShareLink() {
+                const price = this.dom.price.value;
+                const endDate = this.dom.endDate.value;
+                if (!price || !endDate) { alert('请至少填写续费价格和到期日期后再生成链接！'); return; }
+
+                const query = new URLSearchParams({
+                    price, pUnit: this.dom.priceUnit.value, cycle: this.dom.cycle.value, end: endDate,
+                    ...(this.dom.dealPrice.value && { deal: this.dom.dealPrice.value, dUnit: this.dom.dealPriceUnit.value })
+                });
+
+                navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?${query.toString()}`)
+                    .then(() => alert('🎉 链接已成功复制到剪贴板！'))
+                    .catch(() => alert('复制失败'));
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => VPSApp.init());
+    </script>
+</body>
+
+</html>
