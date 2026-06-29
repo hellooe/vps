@@ -2,7 +2,7 @@
 
 一个好用的剩余价值计算器，帮助您快速计算续费周期内剩余天数及对应的货币价值，并支持多币种换算、交易溢价对比与分享链接生成。
 
-![界面预览](https://hellooe.github.io/vps)
+[https://hellooe.github.io/vps/](https://hellooe.github.io/vps/)
 
 ---
 
