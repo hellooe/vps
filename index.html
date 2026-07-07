@@ -22,7 +22,6 @@
             --result-bg: #f1f5f9;
         }
 
-        /* 自动适配系统暗黑模式 */
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-color: #0f172a;
@@ -304,6 +303,11 @@
         </div>
 
         <div class="form-group">
+            <label for="discount">循环折扣</label>
+            <input type="number" id="discount" placeholder="8折填 0.8，无折扣请留空" min="0" max="1" step="0.01">
+        </div>
+
+        <div class="form-group">
             <label for="cycle">续费周期</label>
             <select id="cycle">
                 <option value="monthly">月付 (1个月)</option>
@@ -387,10 +391,17 @@
                 <span class="label" id="out-diff-label">交易溢价:</span>
                 <span class="value" id="out-diff-value">-</span>
             </div>
+
+            <div class="result-item" id="payback-row"
+                style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dotted var(--border-color);">
+                <span class="label" style="color: var(--accent-color); font-weight: 600;">预计回本周期:</span>
+                <span class="value" id="out-payback-value"
+                    style="color: var(--accent-color); font-weight: 700;">-</span>
+            </div>
         </div>
 
         <div class="footer">
-            理性消费 • 从我做起
+            理想消费 • 从我做起
         </div>
     </div>
 
@@ -409,7 +420,7 @@
             state: {
                 isManualRate: false,
                 currencyMap: { 'CNY': '¥', 'USD': '$', 'EUR': '€', 'CAD': 'C$', 'GBP': '£' },
-                storageKeys: ['price', 'priceUnit', 'cycle', 'endDate', 'tradeDate', 'dealPrice', 'dealPriceUnit', 'exchangeRate']
+                storageKeys: ['price', 'priceUnit', 'discount', 'cycle', 'endDate', 'tradeDate', 'dealPrice', 'dealPriceUnit', 'exchangeRate']
             },
 
             dom: {},
@@ -439,8 +450,8 @@
 
                 this.state.storageKeys.forEach(id => this.dom[id] = document.getElementById(id));
                 ['out-total-days', 'out-used-days', 'out-remaining-days', 'out-value', 'out-value-converted',
-                    'out-diff-label', 'out-diff-value', 'exchangeRateRow', 'rateStatus', 'rateLabel', 'error-msg',
-                    'result-box', 'diff-row', 'manualRefreshBtn', 'resetBtn', 'shareBtn'].forEach(id => {
+                    'out-diff-label', 'out-diff-value', 'out-payback-value', 'exchangeRateRow', 'rateStatus', 'rateLabel', 'error-msg',
+                    'result-box', 'diff-row', 'payback-row', 'manualRefreshBtn', 'resetBtn', 'shareBtn'].forEach(id => {
                         this.dom[id] = document.getElementById(id);
                     });
 
@@ -450,7 +461,7 @@
             },
 
             bindEvents() {
-                const inputIds = ['price', 'priceUnit', 'cycle', 'endDate', 'tradeDate', 'dealPrice', 'dealPriceUnit'];
+                const inputIds = ['price', 'priceUnit', 'discount', 'cycle', 'endDate', 'tradeDate', 'dealPrice', 'dealPriceUnit'];
                 inputIds.forEach(id => {
                     this.dom[id].addEventListener('input', (e) => {
                         this.setStorage(id, e.target.value);
@@ -520,9 +531,22 @@
             },
 
             executePipeline() {
+                let discountVal = this.dom.discount.value.trim();
+                let parsedDiscount = 1;
+
+                if (discountVal !== "") {
+                    let rawDiscount = parseFloat(discountVal);
+                    if (isNaN(rawDiscount) || rawDiscount <= 0 || rawDiscount >= 1) {
+                        this.toggleError('❌ 错误：折扣必须介于 0 到 1 之间！');
+                        return;
+                    }
+                    parsedDiscount = rawDiscount;
+                }
+
                 const formData = {
                     price: parseFloat(this.dom.price.value),
                     pUnit: this.dom.priceUnit.value,
+                    discount: parsedDiscount,
                     cycle: this.dom.cycle.value,
                     endDateVal: this.dom.endDate.value,
                     tradeDateVal: this.dom.tradeDate.value,
@@ -568,28 +592,56 @@
 
                 this.dom['out-value'].innerText = `${pSign}${valOriginal.toFixed(2)}`;
 
+                let premiumInDealUnit = 0;
+                let hasDealPrice = (this.dom.dealPrice.value.trim() !== "" && !isNaN(form.dealPrice));
+
                 if (form.pUnit !== form.dUnit) {
                     if (isNaN(form.exchangeRate) || this.dom.exchangeRate.value.trim() === "") {
                         this.dom['out-value-converted'].style.display = 'block';
                         this.dom['out-value-converted'].innerText = `⚠️ 请在上方输入有效汇率以进行币种换算`;
                         this.dom['out-value-converted'].style.color = 'var(--warning-color)';
                         this.dom['diff-row'].style.display = 'none';
+                        this.dom['payback-row'].style.display = 'none';
                         return;
                     }
                     this.dom['out-value-converted'].style.color = 'var(--text-muted)';
                     const valConverted = valOriginal * form.exchangeRate;
                     this.dom['out-value-converted'].innerText = `折合: ${dSign}${valConverted.toFixed(2)} (${form.dUnit})`;
 
-                    if (form.dealPriceInput.trim() !== "" && !isNaN(form.dealPrice)) {
+                    if (hasDealPrice) {
                         this.dom['diff-row'].style.display = 'flex';
-                        this.renderPremiumStyle(form.dealPrice - valConverted, dSign, form.dUnit);
+                        premiumInDealUnit = form.dealPrice - valConverted;
+                        this.renderPremiumStyle(premiumInDealUnit, dSign, form.dUnit);
                     } else { this.dom['diff-row'].style.display = 'none'; }
                 } else {
                     this.dom['out-value-converted'].style.display = 'none';
-                    if (form.dealPriceInput.trim() !== "" && !isNaN(form.dealPrice)) {
+                    if (hasDealPrice) {
                         this.dom['diff-row'].style.display = 'flex';
-                        this.renderPremiumStyle(form.dealPrice - valOriginal, dSign, form.dUnit);
+                        premiumInDealUnit = form.dealPrice - valOriginal;
+                        this.renderPremiumStyle(premiumInDealUnit, dSign, form.dUnit);
                     } else { this.dom['diff-row'].style.display = 'none'; }
+                }
+
+                const cycleMonthsMap = { 'monthly': 1, 'quarterly': 3, 'half-yearly': 6, 'yearly': 12, 'biennially': 24, 'triennially': 36 };
+                const monthsInCycle = cycleMonthsMap[form.cycle] || 1;
+
+                if (hasDealPrice && premiumInDealUnit > 0.005 && form.discount > 0 && form.discount < 0.999) {
+                    const originalFullPrice = form.price / form.discount;
+                    const savingsPerCycleOriginal = originalFullPrice - form.price;
+                    const savingsPerMonthOriginal = savingsPerCycleOriginal / monthsInCycle;
+
+                    const currentExchangeRate = (form.pUnit === form.dUnit) ? 1 : form.exchangeRate;
+                    const savingsPerMonthInDealUnit = savingsPerMonthOriginal * currentExchangeRate;
+
+                    if (savingsPerMonthInDealUnit > 0) {
+                        const paybackMonths = premiumInDealUnit / savingsPerMonthInDealUnit;
+                        this.dom['payback-row'].style.display = 'flex';
+                        this.dom['out-payback-value'].innerText = `${paybackMonths.toFixed(2)} 个月`;
+                    } else {
+                        this.dom['payback-row'].style.display = 'none';
+                    }
+                } else {
+                    this.dom['payback-row'].style.display = 'none';
                 }
             },
 
@@ -685,7 +737,7 @@
                     this.removeStorage('tradeDate');
                     this.removeStorage('exchangeRate');
 
-                    const urlMapping = { 'price': 'price', 'pUnit': 'priceUnit', 'cycle': 'cycle', 'end': 'endDate', 'deal': 'dealPrice', 'dUnit': 'dealPriceUnit' };
+                    const urlMapping = { 'price': 'price', 'pUnit': 'priceUnit', 'discount': 'discount', 'cycle': 'cycle', 'end': 'endDate', 'deal': 'dealPrice', 'dUnit': 'dealPriceUnit' };
                     Object.keys(urlMapping).forEach(key => {
                         if (params.has(key)) {
                             this.dom[urlMapping[key]].value = params.get(key);
@@ -731,6 +783,7 @@
 
                 const query = new URLSearchParams({
                     price, pUnit: this.dom.priceUnit.value, cycle: this.dom.cycle.value, end: endDate,
+                    ...(this.dom.discount.value && { discount: this.dom.discount.value }),
                     ...(this.dom.dealPrice.value && { deal: this.dom.dealPrice.value, dUnit: this.dom.dealPriceUnit.value })
                 });
 
